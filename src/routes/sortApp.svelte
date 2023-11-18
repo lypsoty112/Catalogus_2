@@ -70,7 +70,7 @@
 	</div>
 	<div class="grid grid-cols-4">
 		<div class="flex justify-center">
-			<button class="btn variant-filled-primary" on:click={sortObjects}>Sorteer</button>
+			<button class="btn variant-ghost-primary" on:click={sortObjects}>Sorteer</button>
 		</div>
 		<div class="flex justify-center">
 			<button
