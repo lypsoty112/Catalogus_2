@@ -7,6 +7,12 @@
 
 	let criteriaCount: number = 1;
 
+	let counter: number = 0;
+	const updateCounter = (): number => {
+		counter += 1;
+		return counter;
+	};
+
 	let sortingOptions: string[] = [
 		'title',
 		'artisto',
@@ -38,6 +44,8 @@
 			}
 			return result;
 		});
+
+		counter = 0;
 		displayObjects = [...displayObjects];
 		console.log(displayObjects, sortingOrder);
 	}
@@ -101,118 +109,38 @@
 	</div>
 </div>
 <div>
-	<ol class="list">
-		{#each displayObjects as object, i}
-			<li class="p-1 m-1 !rounded-lg variant-ghost-primary">
-				<span>{i + 1}.</span>
-				<span class="flex-auto">
-					<Accordion>
-						<AccordionItem>
-							<svelte:fragment slot="summary">{object?.object?.title}</svelte:fragment>
-							<svelte:fragment slot="content">
-								<ul>
-									<li class="my-1">
-										<span class="font-bold">Artisto:</span>
-										{#if object?.object?.artisto}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.artisto}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Diametro:</span>
-										{#if object?.object?.diametro}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.diametro}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Diko:</span>
-										{#if object?.object?.diko}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.diko}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Kvanto:</span>
-										{#if object?.object?.kvanto}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.kvanto}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Lando:</span>
-										{#if object?.object?.lando}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.lando}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Metalo:</span>
-										{#if object?.object?.metalo}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.metalo}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Pezo:</span>
-										{#if object?.object?.pezo}
-											<span class="variant-filled-success rounded-lg px-2"
-												>{object?.object?.pezo}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-									<li class="my-1">
-										<span class="font-bold">Tipo:</span>
-										{#if object?.object?.tipo}
-											<span class="variant-filled-success rounded-lg px-2 px-2"
-												>{object?.object?.tipo}</span
-											>
-										{:else}
-											<span class="italic variant-filled-warning rounded-lg px-2 px-2"
-												>Niet gevonden</span
-											>
-										{/if}
-									</li>
-								</ul>
-							</svelte:fragment>
-						</AccordionItem>
-					</Accordion>
-				</span>
-			</li>
-		{/each}
-	</ol>
+	<div class="table-container">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th>Nummer</th>
+					<th>Titel</th>
+					<th>Artisto</th>
+					<th>Diametro</th>
+					<th>Diko</th>
+					<th>Kvanto</th>
+					<th>Lando</th>
+					<th>Metalo</th>
+					<th>Pezo</th>
+					<th>Tipo</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each displayObjects as object}
+					<tr>
+						<td class=" font-bold">{updateCounter()}</td>
+						<td>{object?.object?.title}</td>
+						<td>{object?.object?.artisto}</td>
+						<td>{object?.object?.diametro}</td>
+						<td>{object?.object?.diko}</td>
+						<td>{object?.object?.kvanto}</td>
+						<td>{object?.object?.lando}</td>
+						<td>{object?.object?.metalo}</td>
+						<td>{object?.object?.pezo}</td>
+						<td>{object?.object?.tipo}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </div>
