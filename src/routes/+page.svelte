@@ -3,19 +3,13 @@
 	import Loader from '../components/loader.svelte';
 	import exportObjects from '../scripts/extractObjects';
 	import SortApp from './sortApp.svelte';
-	import { setCookie, getCookie } from '../scripts/cookies';
 
 	let allFiles: FileList;
 	let loading_2: boolean = true;
 	let exportedObjects: Object[];
-	let apikey: string = getCookie('apikey') || '';
-
-	const saveApiKey = (): void => {
-		setCookie('apikey', apikey);
-	};
-
 
 	$: lockFirstStep = allFiles?.length === 0 || allFiles === undefined;
+
 	async function onStepHandler(e: {
 		detail: { state: { current: number; total: number }; step: number };
 	}): Promise<void> {
@@ -51,15 +45,6 @@
 							Geen bestanden geselecteerd
 						{/if}
 					</span>
-				</div>
-				<div>
-					<!--Ask for an OpenAI API key-->
-					<label class="label">
-						<span>OpenAI API key</span>
-						<span class="text-sm text-ghost-secondary"
-							>(Deze key is nodig om de documenten te sorteren. Je vindt dit <a target="_blank" class="underline cursor-pointer font-bold" href="https://platform.openai.com/api-keys"  >hier</a> terug door een account aan te maken.)</span>
-						<input class="input" on:keydown={saveApiKey} on:paste={saveApiKey} bind:value={apikey} type="text" placeholder="sk-XXX-XXX-XXX" />
-					</label>
 				</div>
 				<svelte:fragment slot="navigation">
 					<button
