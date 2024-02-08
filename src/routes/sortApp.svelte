@@ -123,6 +123,7 @@
 					<th>Metalo</th>
 					<th>Pezo</th>
 					<th>Tipo</th>
+					<th>Filename</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -138,6 +139,7 @@
 						<td>{object?.object?.metalo}</td>
 						<td>{object?.object?.pezo}</td>
 						<td>{object?.object?.tipo}</td>
+						<td>{object?.file?.name}</td>
 					</tr>
 				{/each}
 			</tbody>

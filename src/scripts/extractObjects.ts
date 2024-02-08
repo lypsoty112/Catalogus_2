@@ -189,6 +189,8 @@ const extractObjectProperties = ({ html, text }: { html: string; text: string })
 	// The property value is followed by a <
 	// The property value is followed by a <br> or a </p>
 
+	// TODO: Update this regex to be more specific
+
 	const regexes = {
 		tipo: /tipo ([^<]+)</,
 		lando: /lando: ([^<]+)</,
