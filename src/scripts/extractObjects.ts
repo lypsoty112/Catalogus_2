@@ -1,105 +1,86 @@
 // Import the mammoth library
 import mammoth from 'mammoth';
-import { OpenAI } from "@langchain/openai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { getCookie } from './cookies';
-
-
 // -----------------------------
 // Extract objects from file
 // -----------------------------
-
-const initializeChain = () => {
-	const llm = new OpenAI({
-		openAIApiKey: getCookie("apikey") as string,
-		modelName: "gpt-3.5-turbo-1106",
-		temperature: .7,
-	});
-
-	let template = `Extract 1 or multiple objects from the following text written in Esperanto. Each object has the following properties
-- tipo
-- lando
-- metalo
-- diametro
-- kvanto
-- pezo
-- artisto
-- diko
-
-If you don't have a value for a property, leave it as a null-value. Your answer HAS to be in json format following the following structure. Make sure it's immediately parsable as JSON:
-{{
-	'response': [
-		{{
-			'tipo': '',
-			'lando': '',
-			'metalo': '',
-			'diametro': '',
-			'kvanto': '',
-			'pezo': '',
-			'artisto': '',
-			'diko': ''
-		}},
-		...
-	]	
-}}
-<<input text>>
-{text}	
-	`
-
-	console.log('Template:', template);
-
-	let prompt = new PromptTemplate({
-		inputVariables: ['text'],
-		template: template,
-	});
-
-	const chain = prompt.pipe(llm);
-	return chain;
-}
-
-const exportObjects = async (files: FileList) => {
-	// TODO: Implement the extraction of objects from the files
-	let found_objects: object[] = [];
-	const chain: any = initializeChain(); // TODO: Initialize the OpenAI chain
-	for (let i = 0; i < files.length; i++) {
-		const file = files[i];
-		if (isTemporaryFile(file.name)) {
-			continue;
-		}
-
-		const objects = await extractObjects(file, chain);
-		found_objects = found_objects.concat(objects);
-	}
-
-	console.log('Found objects:', found_objects);
-	return found_objects;
-
-};
-
-async function extractObjects(file: File, chain: any): Promise<Object[]> {
+const extractObjectsFromFile = async (file: File) => {
+	let objectsFound = [];
 	const html = await fileToHtml(file);
 	const text = await docxfileToText(file);
 
-	// TODO: Use LangChain to extract properties from the file
-	let response: object[];
-	// Perform a for loop of 3 to get the response from the chain
-	for (let i = 0; i < 3; i++) {
-		try {
-			console.log(chain)
-			let returned = await chain.invoke({ text });
-			// Bring the response from a string to a JSON object
-			console.log('Returned:', returned);
-			response = JSON.parse(returned);
-			console.log('Response:', response);
-			break;
-		
+	// Count the amount of tipo occurrences
+	const tipoRegex = /tipo/gi;
+	const tipoCount = (text.toLowerCase().match(tipoRegex) || []).length;
+	// Find the titles
+	const fileObject = {
+		name: file.name,
+		size: file.size,
+		type: file.type,
+		html: html,
+		text: text,
+		tipoCount: tipoCount
+	};
+
+	if (tipoCount < 2) {
+		// If there are less than 2 tipo occurrences, the file is 1 object
+		// Title is the first line of the text
+		const title = text.split('\n')[0];
+		const object = {
+			text: text,
+			html: html
+		};
+		return [
+			{
+				file: fileObject,
+				object: {
+					title: title,
+					...object,
+					...extractObjectProperties(object)
+				}
+			}
+		];
+	} else {
+		const titles = extractTitles(text);
+		const objects = extractObjectTexts(text, html, titles);
+		for (let i = 0; i < titles.length; i++) {
+			const title = titles[i];
+			const object = objects[i];
+
+			objectsFound.push({
+				file: fileObject,
+				object: {
+					title: title,
+					...object,
+					...extractObjectProperties(object)
+				}
+			});
 		}
-		catch (e) {
-			console.log('Error:', e);
-		}
+		return objectsFound;
+	}
+};
+
+const exportObjects = async (files: FileList) => {
+	// Iterate over each file
+	// Filter out temporary docx files
+
+	let objects = [];
+
+	const filesWithout = Array.from(files).filter((file) => !isTemporaryFile(file.name));
+
+	for (let i = 0; i < filesWithout.length; i++) {
+		// Read the file
+		let file = filesWithout[i];
+		objects.push(...(await extractObjectsFromFile(file)));
 	}
 
-	return [{ html, text }]; 
+	// Strip all values
+	objects = objects.map((object) => {
+		for (const [key, value] of Object.entries(object.object)) {
+			object.object[key] = typeof value == 'string' ? value.trim() : value;
+		}
+		return object;
+	});
+	return objects;
 };
 
 // -----------------------------
@@ -131,6 +112,104 @@ const removeImages = (text: string) => {
 	return text.replace(regex, '');
 };
 
+const extractTitles = (text: string) => {
+	const lines = text.split('\n');
+	let titles = [];
+	let previousLine = '';
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		if (line.toLowerCase().includes('tipo')) {
+			titles.push(previousLine.trim());
+		}
+		previousLine = line == '' ? previousLine : line;
+	}
+	return titles;
+};
+
+const extractObjectTexts = (text: string, html: string, titles: any) => {
+	// Split the text and the html into objects based on the titles
+	// The first object is the first title until the second title
+	// The second object is the second title until the third title
+	// etc.
+	// The last object is the last title until the end of the text or html
+
+	// Initialize an empty array to store the objects
+	let objects: any[] = [];
+
+	// Loop through the titles array
+	for (let i = 0; i < titles.length; i++) {
+		// Get the current title and the next title
+		let currentTitle = titles[i];
+		let nextTitle = titles[i + 1];
+
+		// Find the index of the current title and the next title in the text and html
+		let textCurrentIndex = text.indexOf(currentTitle);
+		let textNextIndex = nextTitle ? text.indexOf(nextTitle) : text.length;
+		let htmlCurrentIndex = html.indexOf(currentTitle);
+		let htmlNextIndex = nextTitle ? html.indexOf(nextTitle) : html.length;
+
+		// Extract the substring between the current index and the next index for both text and html
+		let textSubstring = text.substring(textCurrentIndex, textNextIndex);
+		let htmlSubstring = html.substring(htmlCurrentIndex, htmlNextIndex);
+
+		// Create an object with the title and the substrings as properties
+		let object = {
+			text: textSubstring,
+			html: htmlSubstring
+		};
+
+		// Push the object to the array
+		objects.push(object);
+	}
+
+	// Return the array of objects
+	return objects;
+};
+
+const extractObjectProperties = ({ html, text }: { html: string; text: string }) => {
+	// Properties to find: tipo, Lando, Metalo, Diametro, Kvanto, Pezo, Artisto / medalisto
+	// Initialize an empty object to store the properties
+	let properties: any = {
+		tipo: null,
+		lando: null,
+		metalo: null,
+		diametro: null,
+		kvanto: null,
+		pezo: null,
+		artisto: null,
+		diko: null
+	};
+	// Find the properties in the html
+	let hmtlLowerCase = html.toLowerCase();
+	// Every property is preceded by a > and followed by a <
+	// The property value is between the > and the <
+	// The property name is between the > and the :
+	// The property name is followed by a space
+	// The property value is followed by a space
+	// The property value is followed by a <
+	// The property value is followed by a <br> or a </p>
+
+	const regexes = {
+		tipo: /tipo ([^<]+)</,
+		lando: /lando: ([^<]+)</,
+		metalo: /metalo: ([^<]+)</,
+		diametro: /diametro: ([^<]+)</,
+		kvanto: /kvanto: ([^<]+)</,
+		pezo: /pezo: ([^<]+)</,
+		artisto: /medalisto: ([^<]+)</,
+		diko: /diko: ([^<]+)</
+	};
+
+	for (const [key, value] of Object.entries(regexes)) {
+		let match = hmtlLowerCase.match(value);
+		if (match) {
+			// Cut the match at '\' characters and '\t' characters
+			properties[key] = match[1].split('\\')[0].split('\t')[0].trim();
+		}
+	}
+	// Print the properties
+	return properties;
+};
 
 // Export
 export default exportObjects;
