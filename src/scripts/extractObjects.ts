@@ -97,8 +97,8 @@ const fileToHtml = async (file: File) => {
 		{ includeDefaultStyleMap: true }
 	);
 
-	let text = removeImages(result.value);
-	return text;
+	// let text = removeImages(result.value);
+	return result.value;
 };
 
 const docxfileToText = async (file: File) => {
@@ -191,22 +191,49 @@ const extractObjectProperties = ({ html, text }: { html: string; text: string })
 
 	// TODO: Update this regex to be more specific
 
+	const imageregex = /<img[^>]+src="([^">]+)"/g;
+	const aversoRegex = /averso./;
+	
+	let match;
+	let lastImageIndex = -1;
+	let firstAversoIndex = -1;
+	
+		// Find the index of the first image
+		let firstImageIndex = -1;
+		while ((match = imageregex.exec(hmtlLowerCase)) !== null) {
+			firstImageIndex = match.index;
+			break;
+		}
+	
+	// Find the index of the first occurrence of the word "averso" after the last image
+	const remainingText = hmtlLowerCase.substring(lastImageIndex);
+	const aversoMatch = aversoRegex.exec(remainingText);
+	if (aversoMatch) {
+		firstAversoIndex = lastImageIndex + aversoMatch.index;
+	}
+	
+	// Get the text between the last image (excluding the image) and the first occurrence of "averso"
+	let desiredText = hmtlLowerCase.substring(lastImageIndex + 1, firstAversoIndex).trim();
+	
 	const regexes = {
-		tipo: /tipo ([^<]+)</,
-		lando: /lando: ([^<]+)</,
-		metalo: /metalo: ([^<]+)</,
-		diametro: /diametro: ([^<]+)</,
-		kvanto: /kvanto: ([^<]+)</,
-		pezo: /pezo: ([^<]+)</,
-		artisto: /medalisto: ([^<]+)</,
-		diko: /diko: ([^<]+)</
+		tipo: /[\s\n]?tipo/,
+		lando: /[\s\n]?lando:/,
+		metalo: /[\s\n]?metalo:/,
+		diametro: /[\s\n]?diametro:/,
+		kvanto: /[\s\n]?kvanto:/,
+		pezo: /[\s\n]?pezo:/,
+		artisto: /[\s\n]?medalisto:/,
+		diko: /[\s\n]?diko/
 	};
-
+	console.log("desiredText");
+	console.log(desiredText);
 	for (const [key, value] of Object.entries(regexes)) {
-		let match = hmtlLowerCase.match(value);
+		let match = desiredText.match(value);
+		console.log("match");
+		console.log(match);
 		if (match) {
 			// Cut the match at '\' characters and '\t' characters
-			properties[key] = match[1].split('\\')[0].split('\t')[0].trim();
+			properties[key] = match[0]
 		}
 	}
 	// Print the properties
