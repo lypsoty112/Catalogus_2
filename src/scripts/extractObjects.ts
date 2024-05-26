@@ -3,14 +3,47 @@ import mammoth from 'mammoth';
 // -----------------------------
 // Extract objects from file
 // -----------------------------
+
+const exportObjects = async (files: FileList) => {
+	/**
+	 * FIRST METHOD THAT GETS CALLED. ALL OTHER FUNCTIONS ARE CALLED FROM HERE.
+	 */
+	// Iterate over each file
+	// Filter out temporary docx files
+
+	let objects = [];
+
+	// Remove temporary files
+	const filesWithout = Array.from(files).filter((file) => !isTemporaryFile(file.name));
+
+	for (let i = 0; i < filesWithout.length; i++) {
+		// Read the file
+		let file = filesWithout[i];
+		objects.push(...(await extractObjectsFromFile(file))); // Extracts one or multiple objects from a file.
+	}
+
+	// Strip all values
+	objects = objects.map((object) => {
+		for (const [key, value] of Object.entries(object.object)) {
+			object.object[key] = typeof value == 'string' ? value.trim() : value;
+		}
+		return object;
+	});
+	return objects;
+};
+
+
 const extractObjectsFromFile = async (file: File) => {
+	/**
+	 * Extracts one or multiple objects from a file.
+	 */
 	let objectsFound = [];
 	const html = await fileToHtml(file);
 	const text = await docxfileToText(file);
 
 	// Count the amount of tipo occurrences
 	const tipoRegex = /tipo/gi;
-	const tipoCount = (text.toLowerCase().match(tipoRegex) || []).length;
+	const tipoCount = (text.toLowerCase().match(tipoRegex) || []).length; // TODO: This has to be changed so it counts something different.
 	// Find the titles
 	const fileObject = {
 		name: file.name,
@@ -23,6 +56,7 @@ const extractObjectsFromFile = async (file: File) => {
 
 	if (tipoCount < 2) {
 		// If there are less than 2 tipo occurrences, the file is 1 object
+		// NOTE: Is this true? What if there are no  occurrences, or what if tipo just
 		// Title is the first line of the text
 		const title = text.split('\n')[0];
 		const object = {
@@ -58,31 +92,6 @@ const extractObjectsFromFile = async (file: File) => {
 		return objectsFound;
 	}
 };
-
-const exportObjects = async (files: FileList) => {
-	// Iterate over each file
-	// Filter out temporary docx files
-
-	let objects = [];
-
-	const filesWithout = Array.from(files).filter((file) => !isTemporaryFile(file.name));
-
-	for (let i = 0; i < filesWithout.length; i++) {
-		// Read the file
-		let file = filesWithout[i];
-		objects.push(...(await extractObjectsFromFile(file)));
-	}
-
-	// Strip all values
-	objects = objects.map((object) => {
-		for (const [key, value] of Object.entries(object.object)) {
-			object.object[key] = typeof value == 'string' ? value.trim() : value;
-		}
-		return object;
-	});
-	return objects;
-};
-
 // -----------------------------
 // Support functions
 // -----------------------------
@@ -229,8 +238,7 @@ const extractObjectProperties = ({ html, text }: { html: string; text: string })
 	console.log(desiredText);
 	for (const [key, value] of Object.entries(regexes)) {
 		let match = desiredText.match(value);
-		console.log("match");
-		console.log(match);
+
 		if (match) {
 			// Cut the match at '\' characters and '\t' characters
 			properties[key] = match[0]
