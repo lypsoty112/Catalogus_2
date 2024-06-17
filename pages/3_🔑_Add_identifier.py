@@ -19,8 +19,5 @@ with st.form("add_identifier_form"):
     description = st.text_area("Description")
     datatype = st.selectbox("Datatype", ["str", "int", "float", "bool"])
     if st.form_submit_button(label="Add Identifier"):
-        try:
-            db.add_identifier(identifier, description, datatype)
-            st.toast(f"Added identifier: {identifier}")
-        except Exception as e:
-            st.error(str(e))
+        db.add_identifier(identifier, description, datatype)
+        st.toast(f"Added identifier: {identifier}")
