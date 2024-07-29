@@ -63,9 +63,13 @@ class Database:
         # Bring any value in the data dictionary to lower case
         data = {k.lower(): v for k, v in data.items()}
         
-        # Make sure there's no empty value
-        if "" in data.values():
-            raise ValueError("Please fill all the fields.")
+        for key in data:
+            value = data[key]
+            if isinstance(value, str):
+                data[key] = value.lower().strip() 
+                data[key] = None if data[key] == "" else data[key]
+            elif isinstance(value, int) or isinstance(value, float):
+                data[key] = None if value < 0 else value
 
         # Make sure there's no duplicate name
         db_data = self.get_data()

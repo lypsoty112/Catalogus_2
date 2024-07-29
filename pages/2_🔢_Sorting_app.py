@@ -38,10 +38,12 @@ with st.form("sort_form"):
         else:
             st.warning("Please select at least one column to sort by.")
 
-
-st.download_button(
-    label="Download sorted data",
-    data=create_catalogus(data),
-    file_name="sorted_data.docx",
-    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-)
+try:
+    st.download_button(
+        label="Download sorted data",
+        data=create_catalogus(data),
+        file_name="sorted_data.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+except Exception as e:
+    st.error(f"An error occurred: {e}")
