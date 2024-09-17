@@ -3,7 +3,7 @@ import streamlit as st
 import os
 
 entry = {}
-TOTAL_DOCS: int = 165
+TOTAL_DOCS: int = 154
 DONE_DOCS_FOLDER: os.PathLike = "./data/Superrigardo medailles en uitleg/doing/done"
 
 st.set_page_config(

@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import dotenv
 import os
@@ -32,8 +33,10 @@ class Database:
         data_collection = db[self.__mongo_info["data_collection"]]
         data = list(data_collection.find({}))
         client.close()
-        return pd.DataFrame(data)
-    
+        data = pd.DataFrame(data)
+        return data
+
+
     def add_identifier(self, identifier: str, description: str, datatype: str) -> None:
         # Load the existing identifiers
         identifiers = self.get_identifiers()
