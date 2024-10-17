@@ -1,52 +1,45 @@
-from docx import Document
-from docx.opc.constants import RELATIONSHIP_TYPE
 import io
+from typing import List
 import pandas as pd
+from docx import Document
+from docx.shared import Inches
+from docx.enum.section import WD_SECTION
+from docxcompose.composer import Composer
+import streamlit as st
 
-def create_catalogus(sorted_data: pd.DataFrame):
-    # Extract file paths from the DataFrame
-    docs = sorted_data["file"].tolist()
-    # Convert the first file to a IO bytes object
-    file = io.BytesIO(docs[0])
+def create_catalogus(sorted_data: pd.DataFrame, front_page) -> bytes:
+    # Extract file contents from the DataFrame
+    docs: List[bytes] = sorted_data["file"].tolist()
+
+    front_page_bytes = front_page.getvalue()
+
+    # Initialize progress bar
+    progress_bar = st.progress(0)
+    total_docs = len(docs)
+
     # Create a new Document object from the first file
-    merged_document = Document(docx=file)
+    with io.BytesIO(front_page_bytes) as first_doc:
+        master = Document(first_doc)
+    composer = Composer(master)
 
-    # Iterate over the remaining documents to merge them
-    for index, file in enumerate(docs[1:]):
-        # Convert the current file to a IO bytes object
-        file = io.BytesIO(file)
-        # Create a Document object for the current file
-        sub_doc = Document(docx=file)
+    # Loop through remaining documents and append them to the master document
+    for index, doc_bytes in enumerate(docs, start=0):
+        # Create a Document object from bytes
+        with io.BytesIO(doc_bytes) as doc_stream:
+            doc2 = Document(doc_stream)
+        
+        # Add a page break before appending the new document
+        master.add_page_break()
+        
+        # Append the document to the master
+        composer.append(doc2)
 
-        # Append all elements from the body of the sub-document to the merged document
-        for element in sub_doc.element.body:
-            merged_document.element.body.append(element)
+        # Update progress bar
+        progress_bar.progress(index / total_docs)
 
-        # Handle media and other relationships from the sub-document
-        for rel in sub_doc.part.rels.values():
-            if "image" in rel.target_ref:
-                # Get the image part from the relationship
-                image_part = rel.target_part
-                # Read the image data into a BytesIO object
-                image_data = io.BytesIO(image_part.blob)
+    # Save the final combined document to a bytes object
+    output_bytes = io.BytesIO()
+    master.save(output_bytes)
+    output_bytes.seek(0)
 
-                # Add or get the image part in the merged document's package
-                new_image_part = merged_document.part.package.get_or_add_image_part(image_data)
-                # Add the relationship for the new image part in the merged document
-                merged_document.part.rels.add_relationship(
-                    RELATIONSHIP_TYPE.IMAGE,
-                    new_image_part,
-                    rel.rId
-                )
-
-    # Create a BytesIO object to store the merged document
-    merged_document_bytes = io.BytesIO()
-    
-    # Save the merged document to the BytesIO object
-    merged_document.save(merged_document_bytes)
-    
-    # Move the seek pointer to the beginning of the BytesIO object for reading
-    merged_document_bytes.seek(0)
-    
-    # Return the BytesIO object containing the merged document
-    return merged_document_bytes
+    return output_bytes.getvalue()
